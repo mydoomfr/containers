@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/goss-org/goss/master/docs/schema.yaml
+file:
+  /usr/lib/apache2/mod_auth_openidc.so:
+    exists: true
+  /etc/apache2/conf.d/01-mod-auth-openidc.conf:
+    exists: true
+  /etc/apache2/conf.d/mod-auth-openidc.conf:
+    exists: false
+port:
+  tcp6:8080:
+    listening: true
+http:
+  http://localhost:8080:
+    status: 200

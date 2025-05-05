@@ -132,12 +132,21 @@ jobs:
           workdir: ./apps/${{ inputs.app }}
 
       - if: ${{ ! inputs.release }}
-        name: Run Container Tests
-        uses: ./.github/actions/container-tests
+        name: Setup goss
+        uses: mlipscombe/goss-installation-action@a440e50e0ca070a5b84fc4b99a4e2bc7f9390201 # v1.2.2
         with:
-          app: ${{ inputs.app }}
-          image: ${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }}
-          token: ${{ github.token }}
+          version: latest
+
+      - if: ${{ ! inputs.release }}
+        name: Run goss
+        env:
+          CONTAINER_RUNTIME: docker
+          GOSS_FILE: ./apps/${{ inputs.app }}/tests.yaml
+          GOSS_OPTS: --retry-timeout 60s --sleep 2s --color --format documentation
+          GOSS_SLEEP: 2
+          GOSS_FILES_STRATEGY: cp
+          CONTAINER_LOG_OUTPUT: goss_container_log_output
+        run: dgoss run ${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }}
 
       - if: ${{ inputs.release }}
         name: Export digest
