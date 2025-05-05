@@ -1,3 +1,11 @@
+# This file is based on the upstream FreshRSS project (https://github.com/FreshRSS/FreshRSS)
+# Licensed under the AGPL-3.0 License.
+# Modifications have been made to adapt it for specific use cases.
+#
+# Upstream Author: FreshRSS contributors (https://github.com/FreshRSS/FreshRSS)
+# Modifications Author: Benjamin Pinchon (mydoomfr)
+#
+# This file is distributed under the AGPL-3.0 License.
 #!/bin/sh
 
 if [ -n "$OIDC_ENABLED" ] && [ "$OIDC_ENABLED" -ne 0 ]; then
