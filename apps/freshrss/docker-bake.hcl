@@ -2,7 +2,7 @@ target "docker-metadata-action" {}
 
 variable "VERSION" {
   // renovate: datasource=github-releases depName=FreshRSS/FreshRSS
-  default = "1.26.1"
+  default = "1.26.2"
 }
 
 group "default" {
