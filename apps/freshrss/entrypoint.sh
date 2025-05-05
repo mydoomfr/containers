@@ -1,5 +1,18 @@
 #!/bin/sh
 
+if [ -n "$OIDC_ENABLED" ] && [ "$OIDC_ENABLED" -ne 0 ]; then
+	# Default values
+	export OIDC_SESSION_INACTIVITY_TIMEOUT="${OIDC_SESSION_INACTIVITY_TIMEOUT:-300}"
+	export OIDC_SESSION_MAX_DURATION="${OIDC_SESSION_MAX_DURATION:-27200}"
+	export OIDC_SESSION_TYPE="${OIDC_SESSION_TYPE:-server-cache}"
+
+	if [ -n "$OIDC_SCOPES" ]; then
+		# Compatibility with : as separator instead of space
+		OIDC_SCOPES=$(echo "$OIDC_SCOPES" | tr ':' ' ')
+		export OIDC_SCOPES
+	fi
+fi
+
 php -f ./cli/prepare.php >/dev/null
 
 if [ -n "$FRESHRSS_INSTALL" ]; then
