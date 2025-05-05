@@ -1,7 +1,7 @@
 target "docker-metadata-action" {}
 
 variable "VERSION" {
-  // dependabot: freshrss/freshrss
+  // renovate: datasource=github-releases depName=FreshRSS/FreshRSS
   default = "1.26.1"
 }
 
