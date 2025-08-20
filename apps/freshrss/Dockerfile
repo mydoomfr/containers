@@ -33,27 +33,19 @@ COPY ./entrypoint.sh /entrypoint.sh
 
 RUN apk update && \
     apk upgrade --no-cache && \
-    echo 'http://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache apache-mod-auth-openidc && \
     mkdir -p /run/apache2 && \
     chown -R nobody:nogroup /var/www/FreshRSS /run/apache2 && \
     rm -f /var/www/FreshRSS/cli/access-permissions.sh /etc/crontab.freshrss.default && \
     sed -i -E "s#^\\#Listen 80#Listen \${LISTEN}#" /etc/apache2/httpd.conf && \
+    echo "LoadModule negotiation_module modules/mod_negotiation.so" >> /etc/apache2/httpd.conf && \
     find /etc/php*/ -type f -name php.ini -exec sed -i -E \
     -e "\\#^;?post_max_size#s#^.*#post_max_size = \${PHP_POST_MAX_SIZE}#" \
-    -e "\\#^;?upload_max_filesize#s#^.*#upload_max_filesize = \${PHP_MAX_FILESIZE}#" {} \; && \
-    rm -f /etc/apache2/conf.d/mod-auth-openidc.conf && \
-    cat <<EOF > /etc/apache2/conf.d/01-mod-auth-openidc.conf
-<IfDefine OIDC_ENABLED>
-LoadModule auth_openidc_module /usr/lib/apache2/mod_auth_openidc.so
-</IfDefine>
-EOF
+    -e "\\#^;?upload_max_filesize#s#^.*#upload_max_filesize = \${PHP_MAX_FILESIZE}#" {} \;
 
 USER nobody:nogroup
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD exec httpd -D FOREGROUND $([ -n "$OIDC_ENABLED" ] && [ "$OIDC_ENABLED" -ne 0 ] && echo '-D OIDC_ENABLED')
+CMD exec httpd -D FOREGROUND
 
 EXPOSE 8080
