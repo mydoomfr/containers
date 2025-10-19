@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/goss-org/goss/master/docs/schema.yaml
+file:
+  /opt/bitnami/kubectl/bin/kubectl:
+    exists: true
+    mode: "0755"
+    filetype: file
+command:
+  /opt/bitnami/kubectl/bin/kubectl version --client:
+    exit-status: 0
+    timeout: 10000
+  'sh -c "/opt/bitnami/kubectl/bin/kubectl version --client 2>&1 | grep -E ''Client Version: v{{ .Env.VERSION }}''"':
+    exit-status: 0
+    timeout: 10000
