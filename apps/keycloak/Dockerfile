@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: APACHE-2.0
 
 FROM alpine/git AS bitnami-source
-ARG KEYCLOAK_VERSION=26.4.1
+ARG VERSION=26.4.1
 RUN git clone --depth 1 --branch main https://github.com/bitnami/containers.git /bitnami-src
 
 FROM docker.io/bitnami/minideb:bookworm
@@ -26,7 +26,9 @@ ENV HOME="/" \
     OS_FLAVOUR="debian-12" \
     OS_NAME="linux"
 
-COPY --from=bitnami-source /bitnami-src/bitnami/keycloak/26/debian-12/prebuildfs /
+RUN --mount=type=bind,from=bitnami-source,source=/bitnami-src,target=/bitnami-src \
+    MAJOR_VERSION=$(echo "${VERSION}" | cut -d. -f1) && \
+    cp -a /bitnami-src/bitnami/keycloak/${MAJOR_VERSION}/debian-12/prebuildfs/. /
 SHELL ["/bin/bash", "-o", "errexit", "-o", "nounset", "-o", "pipefail", "-c"]
 
 RUN install_packages ca-certificates curl krb5-user libaio1 procps zlib1g
@@ -52,7 +54,9 @@ RUN apt-get update && apt-get upgrade -y && \
 RUN chmod g+rwX /opt/bitnami
 RUN find / -perm /6000 -type f -exec chmod a-s {} \; || true
 
-COPY --from=bitnami-source /bitnami-src/bitnami/keycloak/26/debian-12/rootfs /
+RUN --mount=type=bind,from=bitnami-source,source=/bitnami-src,target=/bitnami-src \
+    MAJOR_VERSION=$(echo "${VERSION}" | cut -d. -f1) && \
+    cp -a /bitnami-src/bitnami/keycloak/${MAJOR_VERSION}/debian-12/rootfs/. /
 RUN /opt/bitnami/scripts/java/postunpack.sh
 RUN /opt/bitnami/scripts/keycloak/postunpack.sh
 
