@@ -1,0 +1,8 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/goss-org/goss/master/docs/schema.yaml
+http:
+  http://keycloak:8080/realms/test-realm/.well-known/openid-configuration:
+    status: 200
+    timeout: 10000
+    body:
+      - "test-realm"
