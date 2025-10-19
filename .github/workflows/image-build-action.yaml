@@ -146,7 +146,35 @@ jobs:
           GOSS_SLEEP: 2
           GOSS_FILES_STRATEGY: cp
           CONTAINER_LOG_OUTPUT: goss_container_log_output
-        run: dgoss run ${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }}
+        run: |
+          # Source app-specific test environment if it exists
+          if [ -f "./apps/${{ inputs.app }}/test-env.sh" ]; then
+            source "./apps/${{ inputs.app }}/test-env.sh"
+          fi
+ 
+          # Use docker compose if docker-compose.test.yaml exists, otherwise use dgoss
+          if [ -f "./apps/${{ inputs.app }}/docker-compose.test.yaml" ]; then
+            export GOSS_IMAGE="${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }}"
+            SERVICE_NAME="${GOSS_DCGOSS_SERVICE:-${{ inputs.app }}}"
+
+            # Start services
+            docker compose -f "./apps/${{ inputs.app }}/docker-compose.test.yaml" up -d
+
+            # Get actual container name from docker compose
+            CONTAINER_NAME=$(docker compose -f "./apps/${{ inputs.app }}/docker-compose.test.yaml" ps -q "$SERVICE_NAME")
+
+            # Copy goss binary into container
+            docker cp "$(which goss)" "${CONTAINER_NAME}:/usr/local/bin/goss"
+            docker cp "$GOSS_FILE" "${CONTAINER_NAME}:/goss.yaml"
+
+            # Run tests with retry
+            docker exec "$CONTAINER_NAME" goss validate $GOSS_OPTS
+
+            # Cleanup
+            docker compose -f "./apps/${{ inputs.app }}/docker-compose.test.yaml" down -v
+          else
+            dgoss run ${GOSS_RUN_OPTS:-} ${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }} ${GOSS_RUN_CMD:-}
+          fi
 
       - if: ${{ inputs.release }}
         name: Export digest
