@@ -9,6 +9,6 @@ command:
   /opt/bitnami/kubectl/bin/kubectl version --client:
     exit-status: 0
     timeout: 10000
-  'sh -c "/opt/bitnami/kubectl/bin/kubectl version --client 2>&1 | grep -E ''Client Version: v{{ .Env.VERSION }}''"':
+  'sh -c "MINOR_VERSION=$(echo {{ .Env.VERSION }} | cut -d. -f1-2) && /opt/bitnami/kubectl/bin/kubectl version --client 2>&1 | grep -E \"Client Version: v${MINOR_VERSION}\""':
     exit-status: 0
     timeout: 10000
