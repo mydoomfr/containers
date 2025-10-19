@@ -21,6 +21,7 @@ jobs:
     outputs:
       platforms: ${{ steps.bake-options.outputs.platforms }}
       version: ${{ steps.bake-options.outputs.version }}
+      image-name: ${{ steps.bake-options.outputs.image-name }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -52,7 +53,7 @@ jobs:
         with:
           flavor: latest=false
           images: |
-            ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}
+            ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ steps.bake-options.outputs.image-name }}
           tags: |
             type=semver,pattern={{version}},value=${{ steps.image-versions.outputs.semantic }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.image-versions.outputs.semantic }},enable=${{ steps.image-versions.outputs.is-valid-semver }}
@@ -119,12 +120,12 @@ jobs:
             *.args.VENDOR=${{ steps.vars.outputs.repository-owner }}
             *.cache-from=${{ format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max', steps.vars.outputs.repository-owner, inputs.app, steps.vars.outputs.platform-arch) }}
             *.cache-to=${{ inputs.release && format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max,compression=zstd,force-compression=true', steps.vars.outputs.repository-owner, inputs.app, steps.vars.outputs.platform-arch) || '' }}
-            *.labels.org.opencontainers.image.title=${{ inputs.app }}
-            *.labels.org.opencontainers.image.url=https://ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}
+            *.labels.org.opencontainers.image.title=${{ needs.prepare.outputs.image-name }}
+            *.labels.org.opencontainers.image.url=https://ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}
             *.labels.org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             *.labels.org.opencontainers.image.revision=${{ github.sha }}
             *.labels.org.opencontainers.image.vendor=${{ steps.vars.outputs.repository-owner }}
-            ${{ inputs.release && format('*.output=type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true', steps.vars.outputs.repository-owner, inputs.app) || '*.output=type=docker' }}
+            ${{ inputs.release && format('*.output=type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true', steps.vars.outputs.repository-owner, needs.prepare.outputs.image-name) || '*.output=type=docker' }}
             *.platform=${{ matrix.platform }}
             *.tags=
           source: .
@@ -196,7 +197,7 @@ jobs:
     if: ${{ inputs.release }}
     name: Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: [prepare, build]
     outputs:
       digest: ${{ steps.digest.outputs.digest }}
     steps:
@@ -234,24 +235,24 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create \
-              $(jq --raw-output --compact-output '.target."docker-metadata-action".tags | map(select(startswith("ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}")) | "-t " + .) | join(" ")' ${{ runner.temp }}/bake-meta.json) \
-              $(printf 'ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}@sha256:%s ' *)
+              $(jq --raw-output --compact-output '.target."docker-metadata-action".tags | map(select(startswith("ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}")) | "-t " + .) | join(" ")' ${{ runner.temp }}/bake-meta.json) \
+              $(printf 'ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}:$(jq --raw-output '.target."docker-metadata-action".args.DOCKER_META_VERSION' ${{ runner.temp }}/bake-meta.json)
+          docker buildx imagetools inspect ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}:$(jq --raw-output '.target."docker-metadata-action".args.DOCKER_META_VERSION' ${{ runner.temp }}/bake-meta.json)
 
       - name: Export Digest
         id: digest
         run: |
           TAG=$(jq --raw-output '.target."docker-metadata-action".args.DOCKER_META_VERSION' ${{ runner.temp }}/bake-meta.json)
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}:${TAG} --format '{{ json . }}' | jq --raw-output '.manifest.digest')
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}:${TAG} --format '{{ json . }}' | jq --raw-output '.manifest.digest')
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
 
   attest:
     if: ${{ inputs.release }}
     name: Attest
-    needs: release
+    needs: [prepare, release]
     runs-on: ubuntu-latest
     steps:
       - name: Setup Vars
@@ -272,20 +273,20 @@ jobs:
         uses: anchore/sbom-action@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
         with:
           dependency-snapshot: true
-          image: ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}@${{ needs.release.outputs.digest }}
+          image: ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}@${{ needs.release.outputs.digest }}
 
       - name: Attestation
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
         with:
           push-to-registry: true
-          subject-name: ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}
+          subject-name: ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}
           subject-digest: ${{ needs.release.outputs.digest }}
 
       - name: Verify Attestation
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          gh attestation verify --repo ${{ github.repository }} oci://ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ inputs.app }}@${{ needs.release.outputs.digest }}
+          gh attestation verify --repo ${{ github.repository }} oci://ghcr.io/${{ steps.vars.outputs.repository-owner }}/${{ needs.prepare.outputs.image-name }}@${{ needs.release.outputs.digest }}
 
   notify:
     if: ${{ inputs.release && !cancelled() }}

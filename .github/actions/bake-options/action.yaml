@@ -15,6 +15,9 @@ outputs:
   version:
     description: Version
     value: ${{ steps.bake.outputs.version }}
+  image-name:
+    description: Image Name
+    value: ${{ steps.bake.outputs.image-name }}
 
 runs:
   using: composite
@@ -30,3 +33,9 @@ runs:
 
         VERSION=$(jq --raw-output --compact-output '.target."image-all".args.VERSION' <<< "$BAKE_OPTS")
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+        IMAGE_NAME=$(jq --raw-output '.target."image-all".args.IMAGE_NAME // "${{ inputs.app }}"' <<< "$BAKE_OPTS")
+        if [ "$IMAGE_NAME" = "null" ] || [ -z "$IMAGE_NAME" ]; then
+          IMAGE_NAME="${{ inputs.app }}"
+        fi
+        echo "image-name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
