@@ -1,0 +1,6 @@
+{
+  "realm": "test-realm",
+  "enabled": true,
+  "displayName": "Test Realm",
+  "accessTokenLifespan": 300
+}

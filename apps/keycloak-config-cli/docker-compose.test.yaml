@@ -1,0 +1,53 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: ghcr.io/mydoomfr/keycloak:rolling
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_PRODUCTION: "false"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  keycloak-config-cli:
+    image: ${GOSS_IMAGE}
+    working_dir: /
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      IMPORT_FILES_LOCATIONS: /config/*
+    volumes:
+      - ./test-config.json:/config/test-config.json:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["java -jar /opt/bitnami/keycloak-config-cli/keycloak-config-cli.jar; sleep infinity"]
