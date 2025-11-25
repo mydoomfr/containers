@@ -2,7 +2,7 @@ target "docker-metadata-action" {}
 
 variable "VERSION" {
   // renovate: datasource=github-releases depName=keycloak/keycloak versioning=semver
-  default = "26.4.5"
+  default = "26.4.6"
 }
 
 function "major" {
