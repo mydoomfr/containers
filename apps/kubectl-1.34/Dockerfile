@@ -1,4 +1,4 @@
-FROM debian:bookworm-20250929-slim
+FROM debian:bookworm-20251229-slim
 
 ARG TARGETARCH
 ARG KUBECTL_VERSION
