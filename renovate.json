@@ -9,7 +9,9 @@
     {
       "customType": "regex",
       "description": "Process Annotations in Docker Bake",
-      "fileMatch": ["(^|/)docker-bake\\.hcl$"],
+      "managerFilePatterns": [
+        "/(^|/)docker-bake\\.hcl$/"
+      ],
       "matchStrings": [
         "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?( extractVersion=(?<extractVersion>\\S+))?\\n.+ = \"(?<currentValue>[^\"]+)\""
       ],
@@ -21,7 +23,9 @@
   "customDatasources": {},
   "packageRules": [
     {
-      "description": ["Assign Application Labels"],
+      "description": [
+        "Assign Application Labels"
+      ],
       "matchFileNames": [
         "**/docker-bake.hcl",
         "**/Dockerfile"
