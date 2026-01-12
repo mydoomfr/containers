@@ -3,10 +3,10 @@
 http:
   http://localhost:9000/health/ready:
     status: 200
-    timeout: 120000
+    timeout: 300000
   http://localhost:9000/health/live:
     status: 200
-    timeout: 60000
+    timeout: 300000
   http://localhost:8080:
     status: 200
-    timeout: 60000
+    timeout: 300000
