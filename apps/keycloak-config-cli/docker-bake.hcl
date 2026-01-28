@@ -2,7 +2,7 @@ target "docker-metadata-action" {}
 
 variable "VERSION" {
   // renovate: datasource=github-releases depName=adorsys/keycloak-config-cli versioning=semver
-  default = "6.4.0"
+  default = "6.4.1"
 }
 
 function "major" {
