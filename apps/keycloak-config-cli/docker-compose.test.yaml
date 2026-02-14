@@ -14,7 +14,7 @@ services:
       retries: 5
 
   keycloak:
-    image: ghcr.io/mydoomfr/keycloak:rolling@sha256:b0d26ea841d30b91170b8a3d9e1eb457a940b08112e53190dec20dec4ed0ea08
+    image: ghcr.io/mydoomfr/keycloak:rolling@sha256:104e8624c0cadfce3a855ea2cde87b01e164ee811d4d6ff3b854a3d82633abb3
     depends_on:
       postgres:
         condition: service_healthy
