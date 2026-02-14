@@ -152,10 +152,18 @@ jobs:
           if [ -f "./apps/${{ inputs.app }}/test-env.sh" ]; then
             source "./apps/${{ inputs.app }}/test-env.sh"
           fi
- 
+
+          # Resolve the built image reference
+          # containerimage.config.digest is the Docker image ID (present for Docker v2 manifests)
+          # containerimage.digest is the manifest digest (always present, works as fallback)
+          IMAGE_REF="${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }}"
+          if [ -z "$IMAGE_REF" ]; then
+            IMAGE_REF="${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.digest'] }}"
+          fi
+
           # Use docker compose if docker-compose.test.yaml exists, otherwise use dgoss
           if [ -f "./apps/${{ inputs.app }}/docker-compose.test.yaml" ]; then
-            export GOSS_IMAGE="${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }}"
+            export GOSS_IMAGE="$IMAGE_REF"
             SERVICE_NAME="${GOSS_DCGOSS_SERVICE:-${{ inputs.app }}}"
 
             # Start services
@@ -174,7 +182,7 @@ jobs:
             # Cleanup
             docker compose -f "./apps/${{ inputs.app }}/docker-compose.test.yaml" down -v
           else
-            dgoss run ${GOSS_RUN_OPTS:-} ${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.config.digest'] }} ${GOSS_RUN_CMD:-}
+            dgoss run ${GOSS_RUN_OPTS:-} "$IMAGE_REF" ${GOSS_RUN_CMD:-}
           fi
 
       - if: ${{ inputs.release }}
