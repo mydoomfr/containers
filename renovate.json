@@ -31,6 +31,16 @@
         "**/docker-bake.hcl",
         "**/Dockerfile"
       ]
+    },
+    {
+      "description": "Disable digest updates for our own images used in test compose files",
+      "matchFileNames": [
+        "**/docker-compose.test.yaml"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/mydoomfr/**"
+      ],
+      "enabled": false
     }
   ]
 }
