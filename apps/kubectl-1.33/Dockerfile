@@ -8,7 +8,6 @@ RUN apt-get update && \
         ca-certificates \
         curl \
         gettext \
-        git \
         jq \
         procps \
         bash && \
@@ -21,21 +20,35 @@ RUN ARCH=${TARGETARCH:-amd64} && \
     curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o /usr/local/bin/kubectl && \
     curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl.sha256" -o /tmp/kubectl.sha256 && \
     echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum -c - && \
-    chmod +x /usr/local/bin/kubectl && \
+    chmod 0555 /usr/local/bin/kubectl && \
     rm /tmp/kubectl.sha256
 
 RUN ARCH=${TARGETARCH:-amd64} && \
     curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" -o /usr/local/bin/yq && \
     curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/checksums" -o /tmp/yq.checksums && \
     grep "^yq_linux_${ARCH} " /tmp/yq.checksums | awk '{print $19 "  /usr/local/bin/yq"}' | sha256sum -c - && \
-    chmod +x /usr/local/bin/yq && \
+    chmod 0555 /usr/local/bin/yq && \
     rm /tmp/yq.checksums
 
+RUN apt-get remove -y curl && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /var/log/* /tmp/* /var/tmp/*
+
+RUN find / -xdev -perm /6000 -type f -exec chmod a-s {} \; 2>/dev/null || true
+
 RUN useradd -r -u 1001 -g root kubectl && \
-    mkdir -p /.kube && \
-    chmod g+rwX /.kube
+    mkdir -p /.kube /tmp && \
+    chmod 1777 /tmp && \
+    chmod g+rwX /.kube && \
+    touch /.kube/.placeholder && \
+    rm -f /home/kubectl/.bash_history /root/.bash_history 2>/dev/null || true
+
+ENV HISTFILE=/dev/null
 
 USER 1001
+
+WORKDIR /tmp
 
 ENTRYPOINT [ "kubectl" ]
 CMD [ "--help" ]
