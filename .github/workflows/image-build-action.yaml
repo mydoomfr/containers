@@ -66,7 +66,7 @@ jobs:
           mv ${{ steps.meta.outputs.bake-file }} ${{ runner.temp }}/bake-meta.json
 
       - name: Upload meta bake definition
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ inputs.app }}-bake-meta
           path: ${{ runner.temp }}/bake-meta.json
@@ -193,7 +193,7 @@ jobs:
 
       - if: ${{ inputs.release }}
         name: Upload digest
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ inputs.app }}-digests-${{ steps.vars.outputs.platform-arch }}
           path: ${{ runner.temp }}/digests/*
