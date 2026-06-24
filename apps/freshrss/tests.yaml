@@ -6,3 +6,48 @@ port:
 http:
   http://localhost:8080:
     status: 200
+command:
+  ? |
+    php -r '
+    function request(string $url, string $method = "GET", string $body = "", string $cookie = ""): array {
+        $headers = [];
+        if ($cookie !== "") {
+            $headers[] = "Cookie: " . $cookie;
+        }
+        if ($method === "POST") {
+            $headers[] = "Content-Type: application/x-www-form-urlencoded";
+        }
+        $context = stream_context_create([
+            "http" => [
+                "method" => $method,
+                "header" => implode("\r\n", $headers),
+                "content" => $body,
+                "ignore_errors" => true,
+            ],
+        ]);
+        $html = file_get_contents($url, false, $context);
+        return [$html === false ? "" : $html, $http_response_header ?? []];
+    }
+
+    [, $headers] = request("http://127.0.0.1:8080/i/index.php?step=0");
+    $cookie = "";
+    foreach ($headers as $header) {
+        if (preg_match("/^Set-Cookie:\s*([^;]+)/i", $header, $matches)) {
+            $cookie = $matches[1];
+            break;
+        }
+    }
+
+    request("http://127.0.0.1:8080/i/index.php?step=0", "POST", "language=en", $cookie);
+    [$html] = request("http://127.0.0.1:8080/i/index.php?step=1", "GET", "", $cookie);
+    if (str_contains($html, "alert-error") || str_contains($html, "Arf !")) {
+        fwrite(STDERR, $html);
+        exit(1);
+    }
+    echo "FreshRSS install checks passed\n";
+    '
+  :
+    exit-status: 0
+    stdout:
+      - FreshRSS install checks passed
+    timeout: 10000
