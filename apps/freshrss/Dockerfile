@@ -50,7 +50,6 @@ RUN PHP_APK_INDEX="$(apk search --no-cache php)" && \
         xmlwriter \
         tokenizer \
         zlib \
-        pdo_sqlite \
         pdo_mysql \
         pdo_pgsql; \
     do \
