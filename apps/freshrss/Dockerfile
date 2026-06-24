@@ -1,22 +1,18 @@
-# This file is based on the upstream FreshRSS project (https://github.com/FreshRSS/FreshRSS)
-# Licensed under the AGPL-3.0 License.
-# Modifications have been made to adapt it for specific use cases.
-#
-# Upstream Author: FreshRSS contributors (https://github.com/FreshRSS/FreshRSS)
-# Modifications Author: Benjamin Pinchon (mydoomfr)
-#
-# This file is distributed under the AGPL-3.0 License.
+FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
 
 ARG VERSION
-FROM freshrss/freshrss:${VERSION:-1}-alpine
-
 ARG TARGETARCH
 ARG VENDOR
+ARG LISTEN=8080
+ARG PHP_POST_MAX_SIZE=32M
+ARG PHP_MAX_FILESIZE=32M
+ARG TZ=UTC
 
-ENV PHP_POST_MAX_SIZE=32M \
-    PHP_MAX_FILESIZE=32M \
-    LISTEN=8080 \
-    TZ=UTC
+ENV TZ=${TZ} \
+    DATA_PATH='' \
+    FRESHRSS_ENV=''
+
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 LABEL \
     org.opencontainers.image.authors="mydoomfr" \
@@ -29,18 +25,75 @@ LABEL \
     org.opencontainers.image.vendor="FreshRSS" \
     org.opencontainers.image.version=${VERSION}
 
+RUN PHP_APK_INDEX="$(apk search --no-cache php)" && \
+    PHP_PACKAGE="$(printf '%s\n' "$PHP_APK_INDEX" | sed -n -E 's/^(php[0-9][0-9])-.*$/\1/p' | sort -V | tail -n1)" && \
+    test -n "$PHP_PACKAGE" && \
+    PHP_PACKAGES="$PHP_PACKAGE ${PHP_PACKAGE}-apache2" && \
+    for extension in \
+        curl \
+        gmp \
+        intl \
+        mbstring \
+        xml \
+        zip \
+        ctype \
+        dom \
+        fileinfo \
+        iconv \
+        json \
+        opcache \
+        openssl \
+        phar \
+        session \
+        simplexml \
+        xmlreader \
+        xmlwriter \
+        tokenizer \
+        zlib \
+        pdo_mysql \
+        pdo_pgsql; \
+    do \
+        package="${PHP_PACKAGE}-${extension}"; \
+        if printf '%s\n' "$PHP_APK_INDEX" | grep -q "^${package}-"; then \
+            PHP_PACKAGES="$PHP_PACKAGES $package"; \
+        fi; \
+    done && \
+    apk add --no-cache \
+        tzdata \
+        apache2 \
+        $PHP_PACKAGES && \
+    if [ ! -f /usr/bin/php ]; then ln -s "/usr/bin/${PHP_PACKAGE}" /usr/bin/php; fi
+
+RUN mkdir -p /var/www/FreshRSS /run/apache2
+
+WORKDIR /var/www/FreshRSS
+
+ADD https://github.com/FreshRSS/FreshRSS/archive/refs/tags/${VERSION}.tar.gz /tmp/freshrss.tar.gz
+
+RUN tar -xzf /tmp/freshrss.tar.gz --strip-components=1 -C /var/www/FreshRSS && \
+    rm /tmp/freshrss.tar.gz && \
+    cp ./Docker/*.Apache.conf /etc/apache2/conf.d/ && \
+    rm -f /etc/apache2/conf.d/languages.conf /etc/apache2/conf.d/info.conf \
+        /etc/apache2/conf.d/status.conf /etc/apache2/conf.d/userdir.conf && \
+    sed -r -i "/^\s*LoadModule .*mod_(alias|autoindex|negotiation|status).so$/s/^/#/" \
+        /etc/apache2/httpd.conf && \
+    sed -r -i "/^\s*(CustomLog|ErrorLog|Listen) /s/^/#/" \
+        /etc/apache2/httpd.conf && \
+    sed -r -i "/^\s*#\s*LoadModule .*mod_(deflate|expires|filter|headers|mime|remoteip|setenvif).so$/s/^\s*#//" \
+        /etc/apache2/httpd.conf && \
+    sed -r -i "\\#disable_update#s#^.*#\t'disable_update' => true,#" ./config.default.php
+
 COPY ./entrypoint.sh /entrypoint.sh
 
-RUN apk update && \
-    apk upgrade --no-cache && \
-    mkdir -p /run/apache2 && \
+RUN ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && \
+    echo "$TZ" >/etc/timezone && \
     chown -R nobody:nogroup /var/www/FreshRSS /run/apache2 && \
-    rm -f /var/www/FreshRSS/cli/access-permissions.sh /etc/crontab.freshrss.default && \
-    sed -i -E "s#^\\#Listen 80#Listen \${LISTEN}#" /etc/apache2/httpd.conf && \
-    echo "LoadModule negotiation_module modules/mod_negotiation.so" >> /etc/apache2/httpd.conf && \
+    rm -f /var/www/FreshRSS/cli/access-permissions.sh && \
+    sed -i -E "s#^Listen 80#Listen ${LISTEN}#" /etc/apache2/conf.d/FreshRSS.Apache.conf && \
     find /etc/php*/ -type f -name php.ini -exec sed -i -E \
-    -e "\\#^;?post_max_size#s#^.*#post_max_size = \${PHP_POST_MAX_SIZE}#" \
-    -e "\\#^;?upload_max_filesize#s#^.*#upload_max_filesize = \${PHP_MAX_FILESIZE}#" {} \;
+    -e "\\#^;?date.timezone#s#^.*#date.timezone = ${TZ}#" \
+    -e "\\#^;?post_max_size#s#^.*#post_max_size = ${PHP_POST_MAX_SIZE}#" \
+    -e "\\#^;?upload_max_filesize#s#^.*#upload_max_filesize = ${PHP_MAX_FILESIZE}#" {} \;
 
 USER nobody:nogroup
 

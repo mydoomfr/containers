@@ -8,6 +8,27 @@
 #
 # This file is distributed under the AGPL-3.0 License.
 
+DATA_PATH="${DATA_PATH:-./data}"
+
+check_writable_dir() {
+	path="$1"
+	name="$2"
+
+	if ! mkdir -p "$path"; then
+		echo "❌ FreshRSS $name directory '$path' cannot be created."
+		exit 13
+	fi
+
+	if [ ! -w "$path" ]; then
+		echo "❌ FreshRSS $name directory '$path' is not writable."
+		exit 13
+	fi
+}
+
+check_writable_dir "$DATA_PATH" 'data'
+check_writable_dir "$DATA_PATH/users/_" 'data users'
+check_writable_dir './extensions' 'extensions'
+
 php -f ./cli/prepare.php >/dev/null
 
 if [ -n "$FRESHRSS_INSTALL" ]; then
