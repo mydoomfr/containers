@@ -9,7 +9,6 @@ ARG PHP_MAX_FILESIZE=32M
 ARG TZ=UTC
 
 ENV TZ=${TZ} \
-    DATA_PATH='' \
     FRESHRSS_ENV=''
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]

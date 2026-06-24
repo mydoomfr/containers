@@ -16,6 +16,8 @@ The container is designed for Kubernetes:
 - writes only to mounted `data`, `extensions`, `/run/apache2`, and `/tmp`
 - does not run cron inside the web process
 
+Do not set `DATA_PATH` to a relative value such as `./data`. Leave it unset, or set it to the absolute path `/var/www/FreshRSS/data`.
+
 ## Kubernetes Example
 
 ```yaml

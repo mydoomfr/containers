@@ -8,7 +8,9 @@
 #
 # This file is distributed under the AGPL-3.0 License.
 
-DATA_PATH="${DATA_PATH:-./data}"
+FRESHRSS_DATA_PATH="${DATA_PATH:-/var/www/FreshRSS/data}"
+
+umask 0002
 
 check_writable_dir() {
 	path="$1"
@@ -23,10 +25,19 @@ check_writable_dir() {
 		echo "❌ FreshRSS $name directory '$path' is not writable."
 		exit 13
 	fi
+
+	if ! touch "$path/index.html"; then
+		echo "❌ FreshRSS $name directory '$path' cannot be written to."
+		exit 13
+	fi
 }
 
-check_writable_dir "$DATA_PATH" 'data'
-check_writable_dir "$DATA_PATH/users/_" 'data users'
+check_writable_dir "$FRESHRSS_DATA_PATH" 'data'
+check_writable_dir "$FRESHRSS_DATA_PATH/cache" 'data cache'
+check_writable_dir "$FRESHRSS_DATA_PATH/users" 'data users'
+check_writable_dir "$FRESHRSS_DATA_PATH/users/_" 'data users'
+check_writable_dir "$FRESHRSS_DATA_PATH/favicons" 'data favicons'
+check_writable_dir "$FRESHRSS_DATA_PATH/tokens" 'data tokens'
 check_writable_dir './extensions' 'extensions'
 
 php -f ./cli/prepare.php >/dev/null
