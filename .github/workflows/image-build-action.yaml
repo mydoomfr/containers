@@ -133,9 +133,23 @@ jobs:
 
       - if: ${{ ! inputs.release }}
         name: Setup goss
-        uses: mlipscombe/goss-installation-action@a440e50e0ca070a5b84fc4b99a4e2bc7f9390201 # v1.2.2
-        with:
-          version: latest
+        env:
+          # renovate: datasource=github-releases depName=goss-org/goss
+          GOSS_VERSION: v0.4.10
+        run: |
+          case "$(uname -m)" in
+            x86_64) GOSS_ARCH=x86_64 ;;
+            aarch64 | arm64) GOSS_ARCH=arm64 ;;
+            *) echo "Unsupported runner architecture: $(uname -m)" >&2; exit 1 ;;
+          esac
+
+          BASE_URL="https://github.com/goss-org/goss/releases/download/${GOSS_VERSION}"
+          curl -fsSL "${BASE_URL}/goss_${GOSS_VERSION#v}_linux_${GOSS_ARCH}.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin goss
+          sudo curl -fsSL -o /usr/local/bin/dgoss "${BASE_URL}/dgoss"
+          sudo chmod +x /usr/local/bin/goss /usr/local/bin/dgoss
+
+          goss --version
 
       - if: ${{ ! inputs.release }}
         name: Run goss
