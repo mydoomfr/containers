@@ -6,7 +6,7 @@ variable "IMAGE_NAME" {
 
 variable "VERSION" {
   // renovate: datasource=github-releases depName=kubernetes/kubernetes versioning=semver extractVersion=^v(?<version>1\.36\.\d+)$
-  default = "1.36.3"
+  default = "1.36.4"
 }
 
 group "default" {
