@@ -6,7 +6,7 @@ The image therefore bakes the runtime configuration during the build instead of 
 
 Feed refresh is also kept out of the web process. Instead of running cron inside the container, refresh should be handled by a sidecar or a Kubernetes `CronJob` using the same image and the same FreshRSS data volume.
 
-The build still follows upstream FreshRSS logic where it matters: FreshRSS is installed from the upstream release archive, and the base is Alpine pinned by digest. This lets Renovate update both the FreshRSS version and the Alpine digest while keeping the hardening choices local to this image.
+The build still follows upstream FreshRSS logic where it matters: FreshRSS is installed from the upstream release archive, and the base is Alpine pinned by digest. This lets Renovate update both the FreshRSS version and the Alpine digest while keeping the hardening choices local to this image. Because Alpine only republishes its base image on point releases, the image is also rebuilt weekly without cache so that `apk` security updates are picked up; the version tag is republished with a new digest, so pin by digest downstream and let Renovate propose the bump.
 
 The container is designed for Kubernetes:
 
