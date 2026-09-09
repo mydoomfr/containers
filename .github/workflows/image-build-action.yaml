@@ -13,6 +13,11 @@ on:
         type: boolean
         description: Release
         required: true
+      no-cache:
+        type: boolean
+        description: Ignore the build cache so package installs run again
+        required: false
+        default: false
 
 jobs:
   prepare:
@@ -127,6 +132,7 @@ jobs:
             *.labels.org.opencontainers.image.vendor=${{ steps.vars.outputs.repository-owner }}
             ${{ inputs.release && format('*.output=type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true', steps.vars.outputs.repository-owner, needs.prepare.outputs.image-name) || '*.output=type=docker' }}
             *.platform=${{ matrix.platform }}
+            *.no-cache=${{ inputs.no-cache }}
             *.tags=
           source: ./apps/${{ inputs.app }}
           targets: image

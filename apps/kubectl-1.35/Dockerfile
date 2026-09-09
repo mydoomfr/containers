@@ -4,6 +4,7 @@ ARG TARGETARCH
 ARG KUBECTL_VERSION
 
 RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \

@@ -1,0 +1,86 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Scheduled Rebuild
+
+# Rebuild and republish every image on a schedule so that OS package
+# security updates (apk / apt) are picked up even when nothing changed
+# in the repository. Tags are overwritten with a new digest; consumers
+# pinning by digest get the bump proposed by Renovate.
+on:
+  schedule:
+    - cron: "30 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      app:
+        type: string
+        description: Application Name (empty = all apps)
+        required: false
+        default: ""
+
+jobs:
+  apps:
+    name: Get App Inventory
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.apps.outputs.apps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Get App Inventory
+        uses: ./.github/actions/app-inventory
+        id: inventory
+
+      - name: Select Apps to Rebuild
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        id: apps
+        env:
+          INVENTORY: ${{ steps.inventory.outputs.apps }}
+          APP: ${{ inputs.app }}
+        with:
+          script: |
+            const { INVENTORY, APP } = process.env;
+            const inventory = JSON.parse(INVENTORY);
+            const requested = (APP || '').trim();
+            const apps = requested ? inventory.filter((app) => app === requested) : inventory;
+            if (requested && apps.length === 0) {
+              core.setFailed(`Unknown app '${requested}'. Available: ${inventory.join(', ')}`);
+            }
+            core.setOutput('apps', JSON.stringify(apps));
+            core.summary.addHeading('Apps to rebuild:').addList(apps).write();
+
+  build:
+    if: ${{ needs.apps.outputs.apps != '[]' }}
+    needs: apps
+    name: Rebuild ${{ matrix.app }}
+    uses: ./.github/workflows/image-build-action.yaml
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+      security-events: write
+    secrets: inherit
+    strategy:
+      matrix:
+        app: ${{ fromJSON(needs.apps.outputs.apps) }}
+      fail-fast: false
+      max-parallel: 4
+    with:
+      app: ${{ matrix.app }}
+      release: true
+      no-cache: true
+
+  status:
+    if: ${{ !cancelled() }}
+    needs: build
+    name: Rebuild Success
+    runs-on: ubuntu-latest
+    steps:
+      - name: Any jobs failed?
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
+
+      - name: All jobs passed or skipped?
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: echo "All jobs passed or skipped" && echo "${{ toJSON(needs.*.result) }}"

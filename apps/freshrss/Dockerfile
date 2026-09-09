@@ -57,6 +57,7 @@ RUN PHP_APK_INDEX="$(apk search --no-cache php)" && \
             PHP_PACKAGES="$PHP_PACKAGES $package"; \
         fi; \
     done && \
+    apk upgrade --no-cache && \
     apk add --no-cache \
         tzdata \
         apache2 \
