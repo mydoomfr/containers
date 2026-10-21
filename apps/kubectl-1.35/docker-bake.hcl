@@ -9,6 +9,11 @@ variable "VERSION" {
   default = "1.35.9"
 }
 
+variable "YQ_VERSION" {
+  // renovate: datasource=github-releases depName=mikefarah/yq versioning=semver
+  default = "v4.54.1"
+}
+
 group "default" {
   targets = ["image-local"]
 }
@@ -18,8 +23,8 @@ target "image" {
   context = "."
   dockerfile = "Dockerfile"
   args = {
-    KUBECTL_VERSION = "${VERSION}"
     VERSION = "${VERSION}"
+    YQ_VERSION = "${YQ_VERSION}"
     IMAGE_NAME = "${IMAGE_NAME}"
   }
 }
