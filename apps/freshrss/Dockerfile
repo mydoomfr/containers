@@ -93,6 +93,7 @@ RUN ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && \
     find /etc/php*/ -type f -name php.ini -exec sed -i -E \
     -e "\\#^;?date.timezone#s#^.*#date.timezone = ${TZ}#" \
     -e "\\#^;?post_max_size#s#^.*#post_max_size = ${PHP_POST_MAX_SIZE}#" \
+    -e "\\#^;?session.upload_progress.enabled#s#^.*#session.upload_progress.enabled = Off#" \
     -e "\\#^;?upload_max_filesize#s#^.*#upload_max_filesize = ${PHP_MAX_FILESIZE}#" {} \;
 
 USER nobody:nogroup
