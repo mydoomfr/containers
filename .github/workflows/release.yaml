@@ -93,3 +93,44 @@ jobs:
       - name: All jobs passed or skipped?
         if: ${{ !(contains(needs.*.result, 'failure')) }}
         run: echo "All jobs passed or skipped" && echo "${{ toJSON(needs.*.result) }}"
+
+  cves:
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.build.result != 'skipped' }}
+    needs: build
+    name: CVE Comment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Download Scans
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: "*-cves"
+          path: scans
+          merge-multiple: true
+
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          shopt -s nullglob
+          scans=(scans/*.json)
+          if (( ${#scans[@]} == 0 )); then
+            echo "No scan to report, see the [run logs]($RUN_URL)." > comment.md
+            .github/scripts/upsert-comment.sh cves comment.md --update-only
+            exit 0
+          fi
+          .github/scripts/cve-diff.sh render "${scans[@]}"
+          cat comment-full.md >> "$GITHUB_STEP_SUMMARY"
+          .github/scripts/upsert-comment.sh cves comment.md
