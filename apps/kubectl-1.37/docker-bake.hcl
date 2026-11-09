@@ -11,7 +11,7 @@ variable "VERSION" {
 
 variable "YQ_VERSION" {
   // renovate: datasource=github-releases depName=mikefarah/yq versioning=semver
-  default = "v4.54.2"
+  default = "v4.54.3"
 }
 
 group "default" {
