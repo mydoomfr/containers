@@ -290,30 +290,25 @@ jobs:
           restore-keys: grype-db-
           path: ~/.cache/grype/db
 
-      - name: Install Grype
-        uses: anchore/scan-action/download-grype@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
-        id: grype
-
-      - name: Scan
+      - if: ${{ steps.base.outputs.version }}
+        name: Get Published Image
+        id: published
         env:
-          GRYPE: ${{ steps.grype.outputs.cmd }}
-          APP: ${{ inputs.app }}
-          NEW_VERSION: ${{ needs.prepare.outputs.version }}
           OLD_TAG: ${{ steps.base-versions.outputs.is-valid-semver == 'true' && steps.base-versions.outputs.semantic || 'rolling' }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.image-name }}
-          HAS_BASE: ${{ steps.base.outputs.version != '' }}
         run: |
-          mkdir out
-          old=()
-          if [[ $HAS_BASE == true ]]; then old=("${IMAGE##*/}:$OLD_TAG" "registry:${IMAGE,,}:$OLD_TAG"); fi
-          .github/scripts/cve-diff.sh scan "$APP" "$NEW_VERSION" "docker-archive:$RUNNER_TEMP/image.tar" "${old[@]}" > "out/$APP.json"
+          echo "source=registry:${IMAGE,,}:$OLD_TAG" >> "$GITHUB_OUTPUT"
+          echo "label=${IMAGE##*/}:$OLD_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Upload Scan
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Scan
+        uses: mydoomfr/gitops-actions/cve-scan@b83e52881a71e998358e9f05d4e25af3bef6f21e # v1.1.0
         with:
-          name: ${{ inputs.app }}-cves
-          path: out/
-          retention-days: 1
+          name: ${{ inputs.app }}
+          new-source: docker-archive:${{ runner.temp }}/image.tar
+          new-label: ${{ needs.prepare.outputs.version }}
+          old-source: ${{ steps.published.outputs.source }}
+          old-label: ${{ steps.published.outputs.label }}
+          artifact-name: ${{ inputs.app }}-cves
 
   release:
     if: ${{ inputs.release }}
