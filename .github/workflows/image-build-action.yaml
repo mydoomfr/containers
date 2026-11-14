@@ -121,6 +121,10 @@ jobs:
           files: |
             ./docker-bake.hcl
             cwd://${{ runner.temp }}/bake-meta.json
+          # PR builds recompress every layer so the `docker save` archive handed to the
+          # CVE diff is uniform: on Docker 29 the daemon keeps layers as stored, and
+          # grype cannot read an archive mixing the uncompressed bitnami/minideb layer
+          # with gzip ones (google/go-containerregistry#2491)
           set: |
             *.args.VENDOR=${{ steps.vars.outputs.repository-owner }}
             *.cache-from=${{ format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max', steps.vars.outputs.repository-owner, inputs.app, steps.vars.outputs.platform-arch) }}
@@ -130,7 +134,7 @@ jobs:
             *.labels.org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             *.labels.org.opencontainers.image.revision=${{ github.sha }}
             *.labels.org.opencontainers.image.vendor=${{ steps.vars.outputs.repository-owner }}
-            ${{ inputs.release && format('*.output=type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true', steps.vars.outputs.repository-owner, needs.prepare.outputs.image-name) || '*.output=type=docker' }}
+            ${{ inputs.release && format('*.output=type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true', steps.vars.outputs.repository-owner, needs.prepare.outputs.image-name) || '*.output=type=docker,compression=gzip,force-compression=true' }}
             *.platform=${{ matrix.platform }}
             *.no-cache=${{ inputs.no-cache }}
             *.tags=
