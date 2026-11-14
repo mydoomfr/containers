@@ -103,7 +103,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Comment on the PR
-        uses: mydoomfr/gitops-actions/cve-report@b83e52881a71e998358e9f05d4e25af3bef6f21e # v1.1.0
+        uses: mydoomfr/gitops-actions/cve-report@cb2f00badf59e0e7a4ec73ba3be21d711e41222c # v1.2.0
         with:
           artifact-pattern: "*-cves"
           marker: cves

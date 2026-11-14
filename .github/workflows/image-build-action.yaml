@@ -305,7 +305,7 @@ jobs:
           echo "label=${IMAGE##*/}:$OLD_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Scan
-        uses: mydoomfr/gitops-actions/cve-scan@b83e52881a71e998358e9f05d4e25af3bef6f21e # v1.1.0
+        uses: mydoomfr/gitops-actions/cve-scan@cb2f00badf59e0e7a4ec73ba3be21d711e41222c # v1.2.0
         with:
           name: ${{ inputs.app }}
           new-source: docker-archive:${{ runner.temp }}/image.tar
