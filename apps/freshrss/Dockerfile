@@ -45,7 +45,6 @@ RUN PHP_APK_INDEX="$(apk search --no-cache php)" && \
         phar \
         session \
         simplexml \
-        xmlreader \
         xmlwriter \
         tokenizer \
         zlib \
